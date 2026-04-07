@@ -2,17 +2,17 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const { MongoClient, ServerApiVersion } = require("mongodb"); 
+const { MongoClient, ServerApiVersion } = require("mongodb");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ Middleware
+// middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ MongoDB setup
-const uri = process.env.MONGO_URI; 
+// mongodb connection
+const uri = process.env.MONGO_URI;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -22,11 +22,15 @@ const client = new MongoClient(uri, {
   },
 });
 
-// Connect MongoDB
 async function run() {
   try {
-    await client.connect(); // FIX: connect DB
-    console.log("✅ MongoDB Connected");
+    await client.connect();
+
+    // database & collection
+    const db = client.db("book_heaven");
+    const booksCollection = db.collection("books");
+
+    console.log("MongoDB connected");
   } catch (error) {
     console.log(error);
   }
@@ -34,12 +38,12 @@ async function run() {
 
 run().catch(console.dir);
 
-//  Root route
+// root route
 app.get("/", (req, res) => {
-  res.send("📚 The Book Heaven Server is running!");
+  res.send("The Book Heaven Server is running");
 });
 
-//  Start server
+// server start
 app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
