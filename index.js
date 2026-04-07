@@ -31,6 +31,13 @@ async function run() {
     const booksCollection = db.collection("books");
 
     console.log("MongoDB connected");
+
+    // get all books
+    app.get("/books", async (req, res) => {
+      const result = await booksCollection.find().toArray();
+      res.send(result);
+    });
+
   } catch (error) {
     console.log(error);
   }
