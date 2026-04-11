@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -26,7 +26,6 @@ async function run() {
   try {
     await client.connect();
 
-    // database & collection
     const db = client.db("book_heaven");
     const booksCollection = db.collection("books");
 
@@ -38,6 +37,31 @@ async function run() {
       res.send(result);
     });
 
+    // add book (single or multiple)
+    app.post("/books", async (req, res) => {
+      const data = req.body;
+
+      let result;
+
+      if (Array.isArray(data)) {
+        result = await booksCollection.insertMany(data);
+      } else {
+        result = await booksCollection.insertOne(data);
+      }
+
+      res.send(result);
+    });
+
+    // get single book by id
+    app.get("/books/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const result = await booksCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
   } catch (error) {
     console.log(error);
   }
