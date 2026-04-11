@@ -62,6 +62,23 @@ async function run() {
 
       res.send(result);
     });
+
+    // update book by id
+    app.patch("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const result = await booksCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: updatedData,
+        },
+      );
+
+      res.send(result);
+    });
+
+
   } catch (error) {
     console.log(error);
   }
