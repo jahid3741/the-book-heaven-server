@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -24,71 +24,117 @@ async function run() {
   try {
     await client.connect();
 
+    console.log("MongoDB Connected");
+
     const db = client.db("book_heaven");
+
     const booksCollection = db.collection("books");
 
-    console.log("MongoDB connected");
+    const commentsCollection = db.collection("comments");
 
-    // get all books
+    app.get("/", (req, res) => {
+      res.send("Book Heaven Server Running");
+    });
+
     app.get("/books", async (req, res) => {
       const result = await booksCollection.find().toArray();
-      res.json(result);
+      res.send(result);
     });
 
-    // get single book
     app.get("/books/:id", async (req, res) => {
-      const id = req.params.id;
+      try {
+        const result = await booksCollection.findOne({
+          _id: new ObjectId(req.params.id),
+        });
 
-      const result = await booksCollection.findOne({ _id: id });
-
-      if (!result) {
-        return res.status(404).json({ message: "Book not found" });
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to get book" });
       }
-
-      res.json(result);
     });
 
-    // get books by user
     app.get("/my-books", async (req, res) => {
-      const email = req.query.email;
-      const result = await booksCollection.find({ userEmail: email }).toArray();
-      res.json(result);
+      try {
+        const result = await booksCollection
+          .find({
+            userEmail: req.query.email,
+          })
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to get books" });
+      }
     });
 
-    // latest books
-    app.get("/latest-books", async (req, res) => {
-      const result = await booksCollection
-        .find()
-        .sort({ _id: -1 })
-        .limit(6)
-        .toArray();
-      res.json(result);
-    });
-
-    // add book
     app.post("/books", async (req, res) => {
-      const result = await booksCollection.insertOne(req.body);
-      res.json(result);
+      try {
+        const data = req.body;
+
+        let result;
+
+        if (Array.isArray(data)) {
+          result = await booksCollection.insertMany(data);
+        } else {
+          result = await booksCollection.insertOne(data);
+        }
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to add books" });
+      }
     });
 
-    // update book
     app.put("/books/:id", async (req, res) => {
-      const id = req.params.id;
+      try {
+        const result = await booksCollection.updateOne(
+          { _id: new ObjectId(req.params.id) },
+          {
+            $set: req.body,
+          },
+        );
 
-      const result = await booksCollection.updateOne(
-        { _id: id },
-        { $set: req.body },
-      );
-
-      res.json(result);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to update book" });
+      }
     });
 
-    // delete book
     app.delete("/books/:id", async (req, res) => {
-      const id = req.params.id;
+      try {
+        const result = await booksCollection.deleteOne({
+          _id: new ObjectId(req.params.id),
+        });
 
-      const result = await booksCollection.deleteOne({ _id: id });
-      res.json(result);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to delete book" });
+      }
+    });
+
+    app.post("/comments", async (req, res) => {
+      try {
+        const result = await commentsCollection.insertOne(req.body);
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to add comment" });
+      }
+    });
+
+    app.get("/comments/:bookId", async (req, res) => {
+      try {
+        const result = await commentsCollection
+          .find({
+            bookId: req.params.bookId,
+          })
+          .sort({ _id: -1 })
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to get comments" });
+      }
     });
   } catch (error) {
     console.log(error);
@@ -96,10 +142,6 @@ async function run() {
 }
 
 run().catch(console.dir);
-
-app.get("/", (req, res) => {
-  res.send("The Book Heaven Server is running");
-});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
